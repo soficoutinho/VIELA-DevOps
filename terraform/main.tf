@@ -21,6 +21,12 @@ data "azurerm_resource_group" "viela" {
   name = "rg-viela-devops"
 }
 
+# Workspace de monitoramento existente
+data "azurerm_log_analytics_workspace" "viela" {
+  name                = "law-viela-devops"
+  resource_group_name = data.azurerm_resource_group.viela.name
+}
+
 # Saidas do Terraform
 output "resource_group_name" {
   value = data.azurerm_resource_group.viela.name
@@ -35,6 +41,8 @@ resource "azurerm_container_app_environment" "viela" {
   name                = "cae-viela-devops"
   location            = "canadacentral"
   resource_group_name = data.azurerm_resource_group.viela.name
+
+  log_analytics_workspace_id = data.azurerm_log_analytics_workspace.viela.id
 
   workload_profile {
     name                  = "Consumption"
@@ -54,10 +62,16 @@ resource "azurerm_container_app" "viela" {
   container_app_environment_id = azurerm_container_app_environment.viela.id
   resource_group_name          = data.azurerm_resource_group.viela.name
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
 
   template {
     min_replicas = 0
     max_replicas = 1
+
+    http_scale_rule {
+      name                = "http-scaler"
+      concurrent_requests = 10
+    }
 
     container {
       name   = "viela-api"
@@ -76,6 +90,7 @@ resource "azurerm_container_app" "viela" {
   ingress {
     external_enabled = true
     target_port      = 8000
+    transport        = "http"
 
     traffic_weight {
       percentage      = 100

@@ -16,14 +16,76 @@ provider "azurerm" {
   subscription_id = "5ec8d996-4116-49f6-9411-f785507b788d"
 }
 
+# Grupo de recursos existente
 data "azurerm_resource_group" "viela" {
   name = "rg-viela-devops"
 }
 
+# Saidas do Terraform
 output "resource_group_name" {
   value = data.azurerm_resource_group.viela.name
 }
 
 output "resource_group_location" {
   value = data.azurerm_resource_group.viela.location
+}
+
+# Ambiente Azure Container Apps
+resource "azurerm_container_app_environment" "viela" {
+  name                = "cae-viela-devops"
+  location            = "canadacentral"
+  resource_group_name = data.azurerm_resource_group.viela.name
+
+  workload_profile {
+    name                  = "Consumption"
+    workload_profile_type = "Consumption"
+  }
+
+  tags = {
+    projeto    = "VIELA"
+    ambiente   = "dev"
+    finalidade = "fiap-global-solution"
+  }
+}
+
+# Aplicacao VIELA API
+resource "azurerm_container_app" "viela" {
+  name                         = "ca-viela-api"
+  container_app_environment_id = azurerm_container_app_environment.viela.id
+  resource_group_name          = data.azurerm_resource_group.viela.name
+  revision_mode                = "Single"
+
+  template {
+    min_replicas = 0
+    max_replicas = 1
+
+    container {
+      name   = "viela-api"
+      image  = "ghcr.io/soficoutinho/viela-devops:latest"
+      cpu    = 0.25
+      memory = "0.5Gi"
+
+      liveness_probe {
+        transport = "HTTP"
+        port      = 8000
+        path      = "/health"
+      }
+    }
+  }
+
+  ingress {
+    external_enabled = true
+    target_port      = 8000
+
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
+  }
+
+  tags = {
+    projeto    = "VIELA"
+    ambiente   = "dev"
+    finalidade = "fiap-global-solution"
+  }
 }

@@ -10,6 +10,6 @@ __pycache__/
 *.tfstate.*
 *.tfvars
 .terraform/
-.terraform.lock.hcl
 crash.log
 .DS_Store
+trivy-report.json

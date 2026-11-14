@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   tests:
@@ -77,3 +78,25 @@ jobs:
           exit-code: "1"
           severity: CRITICAL,HIGH
           ignore-unfixed: true
+
+  publish:
+    name: Publicar imagem no GHCR
+    runs-on: ubuntu-latest
+    needs: [tests, gitleaks, semgrep, trivy]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Login no GitHub Container Registry
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir e publicar imagem
+        run: |
+          docker build -t ghcr.io/soficoutinho/viela-devops:latest .
+          docker push ghcr.io/soficoutinho/viela-devops:latest

@@ -6,14 +6,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Atualiza pacotes de seguranca do Debian
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cria usuario sem privilegios de root
 RUN groupadd --system viela \
     && useradd --system --gid viela \
        --home-dir /app viela
 
+# Instala dependencias Python atualizadas
 COPY requirements.txt .
 
 RUN python -m pip install --no-cache-dir \
-    --upgrade "pip" "setuptools" \
+    --upgrade pip "setuptools>=78.1.1" \
     "wheel>=0.46.2" "jaraco.context>=6.1.0" \
     && python -m pip install --no-cache-dir \
     -r requirements.txt

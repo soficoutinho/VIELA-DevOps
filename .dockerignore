@@ -1,0 +1,16 @@
+
+.venv/
+.git/
+.github/
+.pytest_cache/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.tfstate
+*.tfstate.*
+*.tfvars
+terraform/
+monitoring/
+docs/
+frontend/

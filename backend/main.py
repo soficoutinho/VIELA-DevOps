@@ -1,12 +1,40 @@
 
-from fastapi import FastAPI, HTTPException
+import logging
+import time
+
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("viela.monitoramento")
 
 app = FastAPI(
     title="VIELA API",
     description="Caminhos que conectam.",
     version="1.0.0",
 )
+
+
+@app.middleware("http")
+async def monitorar_requisicoes(request: Request, call_next):
+    inicio = time.perf_counter()
+    status_code = 500
+
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+    finally:
+        duracao_ms = (time.perf_counter() - inicio) * 1000
+
+        logger.info(
+            "VIELA_METRIC metodo=%s rota=%s status=%d latencia_ms=%.2f",
+            request.method,
+            request.url.path,
+            status_code,
+            duracao_ms,
+        )
+
 
 trajetos = [
     {
